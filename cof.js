@@ -7,8 +7,10 @@ class Cof {
     this.r = r
     this.scaleType = 'major' // Type de gamme par défaut
     this.updateIntervals()
-    this.modes = ['ionian', 'dorian', 'phrygian', 'lydian', 'mixolydian', 'aeolian', 'locrian']
-    this.harmonicMinorModes = ['harmonic minor', 'locrian nat6', 'ionian ♯5', 'dorian ♯4', 'phrygian dominant', 'lydian ♯2', 'ultralocrian']
+    this.modes = {
+      major: ['ionian', 'dorian', 'phrygian', 'lydian', 'mixolydian', 'aeolian', 'locrian'],
+      harmonicMinor: ['harmonic minor', 'locrian nat6', 'ionian ♯5', 'dorian ♯4', 'phrygian dominant', 'lydian ♯2', 'ultralocrian']
+    }
     this.key = 'C'
     this.mode = 'ionian'
     this.updateScale()
@@ -23,14 +25,28 @@ class Cof {
 
   updateScale() {
     this.scale = Tonal.Scale.get(this.key + ' ' + this.mode)
+    console.log('Échelle obtenue:', this.scale)
     this.isSharpScale = this.scale.notes.map(e => e.slice(1)).includes('#')
-    if (this.scaleType === 'major' && this.mode == 'lydian') {
-      this.intervals[6] = '4A'
-    } else if (this.scaleType === 'harmonicMinor' && this.mode == 'locrian nat6') {
-      this.intervals[5] = '6M'
-      this.intervals[3] = '4P' // Correction pour éviter deux fois le degré 6
-    }
+    this.adjustIntervals()
     this.notes = this.intervals.map(Tonal.Note.transposeFrom(this.key))
+    console.log('Notes obtenues après transposition:', this.notes)
+  }
+
+  adjustIntervals() {
+    // Ajuster les intervalles en fonction du mode
+    if (this.scaleType === 'major') {
+      if (this.mode === 'lydian') {
+        this.intervals[6] = '4A'
+      } else if (this.mode === 'locrian') {
+        this.intervals[1] = '5d'
+      }
+    } else if (this.scaleType === 'harmonicMinor') {
+      if (this.mode === 'locrian nat6') {
+        this.intervals[5] = '6M'
+        this.intervals[3] = '4P'
+        console.log('Intervalles pour locrian nat6:', this.intervals)
+      }
+    }
   }
 
   display() {
@@ -59,6 +75,7 @@ class Cof {
       note = this.notes[i]
       interval = this.intervals[i]
       isScale = this.scale.notes.includes(note)
+      console.log('Note:', note, 'Interval:', interval, 'Is in scale:', isScale)
       this.vNotes.push(new Note(i, note, interval, isScale, this.x, this.y, this.r))
     }
   }
@@ -91,11 +108,11 @@ class Cof {
 
   updateMode(mode) {
     if (this.scaleType === 'major') {
-      if ((mode < 0) || (mode > this.modes.length)) return
-      this.mode = this.modes[mode - 1]
+      if ((mode < 0) || (mode > this.modes.major.length)) return
+      this.mode = this.modes.major[mode - 1]
     } else if (this.scaleType === 'harmonicMinor') {
-      if ((mode < 0) || (mode > this.harmonicMinorModes.length)) return
-      this.mode = this.harmonicMinorModes[mode - 1]
+      if ((mode < 0) || (mode > this.modes.harmonicMinor.length)) return
+      this.mode = this.modes.harmonicMinor[mode - 1]
     }
     this.updateScale()
     this.setNotes()
