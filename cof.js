@@ -5,24 +5,32 @@ class Cof {
     this.x = x
     this.y = y
     this.r = r
-    if (type == 'fifth')
-      this.intervals = ["1P", "5P", "2M", "6M", "3M", "7M", "5d", "2m", "6m", "3m", '7m', '4P']
-    else
-      this.intervals = ["1P", "2m", "2M", "3m", "3M", '4P', "5d", "5P", "6m", "6M", '7m', "7M"]
+    this.scaleType = 'major' // Type de gamme par défaut
+    this.updateIntervals()
     this.modes = ['ionian', 'dorian', 'phrygian', 'lydian', 'mixolydian', 'aeolian', 'locrian']
+    this.harmonicMinorModes = ['harmonic minor', 'locrian nat6', 'ionian ♯5', 'dorian ♯4', 'phrygian dominant', 'lydian ♯2', 'ultralocrian']
     this.key = 'C'
     this.mode = 'ionian'
-    this.scale = Tonal.Scale.get(this.key + ' ' + this.mode)
-
-    this.isSharpScale = this.scale.notes.map(e => e.slice(1)).includes('#')
-
-    if (this.mode == 'lydian')
-      this.intervals[6] = '4A'
-    this.notes = this.intervals.map(Tonal.Note.transposeFrom(this.key))
-    console.log(this.scale.notes)
-
+    this.updateScale()
     this.vNotes = [] // partie visuelle
     this.setNotes()
+  }
+
+  updateIntervals() {
+    // Le cycle des quintes reste fixe
+    this.intervals = ["1P", "5P", "2M", "6M", "3M", "7M", "5d", "2m", "6m", "3m", '7m', '4P']
+  }
+
+  updateScale() {
+    this.scale = Tonal.Scale.get(this.key + ' ' + this.mode)
+    this.isSharpScale = this.scale.notes.map(e => e.slice(1)).includes('#')
+    if (this.scaleType === 'major' && this.mode == 'lydian') {
+      this.intervals[6] = '4A'
+    } else if (this.scaleType === 'harmonicMinor' && this.mode == 'locrian nat6') {
+      this.intervals[5] = '6M'
+      this.intervals[3] = '4P' // Correction pour éviter deux fois le degré 6
+    }
+    this.notes = this.intervals.map(Tonal.Note.transposeFrom(this.key))
   }
 
   display() {
@@ -39,11 +47,14 @@ class Cof {
     textSize(this.r / 3)
     if (this.type == 'fifth')
       text('☾       ☼', this.x, this.y)
+    textSize(this.r / 10)
+    text(this.scaleType === 'major' ? 'Major' : 'Harmonic Minor', this.x, this.y + this.r / 4)
     pop()
   }
 
   setNotes() {
     let note, interval, isScale
+    this.vNotes = [] // Réinitialiser les notes visuelles
     for (let i = 0; i < this.intervals.length; i++) {
       note = this.notes[i]
       interval = this.intervals[i]
@@ -64,13 +75,7 @@ class Cof {
   updateKey(newkey) {
     console.log('update' + newkey)
     this.key = newkey
-    this.scale = Tonal.Scale.get(this.key + ' ' + this.mode)
-    this.isSharpScale = this.scale.notes.map(e => e.slice(1)).includes('#')
-
-    if (this.mode == 'lydian')
-      this.intervals[6] = '4A'
-    this.notes = this.intervals.map(Tonal.Note.transposeFrom(this.key))
-    this.vNotes = [] // partie visuelle
+    this.updateScale()
     this.setNotes()
   }
 
@@ -79,26 +84,20 @@ class Cof {
     else if (this.type == 'scale') this.type = 'fifth'
 
     console.log(this.type)
-    if (this.type == 'fifth')
-      this.intervals = ["1P", "5P", "2M", "6M", "3M", "7M", "5d", "2m", "6m", "3m", '7m', '4P']
-    else
-      this.intervals = ["1P", "2m", "2M", "3m", "3M", '4P', "5d", "5P", "6m", "6M", '7m', "7M"]
-
+    this.updateIntervals()
     this.notes = this.intervals.map(Tonal.Note.transposeFrom(this.key))
-    this.vNotes = [] // partie visuelle
     this.setNotes()
   }
 
   updateMode(mode) {
-    if ((mode < 0) || (mode > this.modes.length)) return
-    this.mode = this.modes[mode - 1]
-    this.scale = Tonal.Scale.get(this.key + ' ' + this.mode)
-    this.isSharpScale = this.scale.notes.map(e => e.slice(1)).includes('#')
-
-    if (this.mode == 'lydian')
-      this.intervals[6] = '4A'
-    this.notes = this.intervals.map(Tonal.Note.transposeFrom(this.key))
-    this.vNotes = [] // partie visuelle
+    if (this.scaleType === 'major') {
+      if ((mode < 0) || (mode > this.modes.length)) return
+      this.mode = this.modes[mode - 1]
+    } else if (this.scaleType === 'harmonicMinor') {
+      if ((mode < 0) || (mode > this.harmonicMinorModes.length)) return
+      this.mode = this.harmonicMinorModes[mode - 1]
+    }
+    this.updateScale()
     this.setNotes()
   }
 
@@ -120,6 +119,13 @@ class Cof {
         if ((index > 0) && (index <= 7))
           this.updateMode(index)
       }
+    }
+    // Changer de type de gamme en double cliquant au centre
+    if (dist(mouseX, mouseY, this.x, this.y) < this.r / 4) {
+      this.scaleType = this.scaleType === 'major' ? 'harmonicMinor' : 'major'
+      this.mode = this.scaleType === 'major' ? 'ionian' : 'harmonic minor' // Mode 1 par défaut
+      this.updateScale()
+      this.setNotes()
     }
   }
 
